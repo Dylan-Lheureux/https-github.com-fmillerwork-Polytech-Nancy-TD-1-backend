@@ -37,6 +37,21 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Task'
+        get:
+            tags: [ tasks ]
+            summary: Récupère l'ensemble des tâches
+            description: Récupère l'ensemble des tâches
+            operationId : getAllTask
+
+            responses:
+                '200':
+                    description: Ok
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Task'
+                '204':
+                    description: No Content
 
     /tasks/{id}:
         parameters:

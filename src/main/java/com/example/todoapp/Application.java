@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,6 +60,19 @@ public class Application {
                 sendResponse(exchange, 200, JsonUtils.serialize(task.get()));
             } else {
                 sendResponse(exchange, 404, null);
+            }
+            return;
+        }
+        //endregion
+
+        //region Manage GET /tasks          ICI LA C'EST LA QUE TU VEUX MODIFIER
+        if ("GET".equals(method) && "/tasks".equals(path)) {
+            ArrayList<Task> tasks = dao.findAll();
+
+            if (!tasks.isEmpty()) {
+                sendResponse(exchange, 200, JsonUtils.serialize(tasks));
+            } else {
+                sendResponse(exchange, 204, null);
             }
             return;
         }
