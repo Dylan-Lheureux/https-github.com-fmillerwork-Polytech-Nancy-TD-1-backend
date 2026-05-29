@@ -1,6 +1,5 @@
 package com.example.todoapp;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -34,6 +33,15 @@ public class TaskDao {
     public Optional<Task> findById(int id) {
         return Optional.ofNullable(storage.get(id));
     }
+
     public ArrayList<Task> findAll() {return new ArrayList<>(storage.values());}
+
+    public void deleteById(int id) {
+        storage.remove(id);
+    }
+
+    public void changeById(int id, Task newTask) {
+        storage.replace(id, newTask);
+    }
 }
 

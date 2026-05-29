@@ -65,7 +65,7 @@ public class Application {
         }
         //endregion
 
-        //region Manage GET /tasks          ICI LA C'EST LA QUE TU VEUX MODIFIER
+        //region Manage GET /tasks 
         if ("GET".equals(method) && "/tasks".equals(path)) {
             ArrayList<Task> tasks = dao.findAll();
 
@@ -73,6 +73,38 @@ public class Application {
                 sendResponse(exchange, 200, JsonUtils.serialize(tasks));
             } else {
                 sendResponse(exchange, 204, null);
+            }
+            return;
+        }
+        //endregion
+
+        //region Manage DELETE /tasks/{id}
+        if ("DELETE".equals(method) && m.matches()) {
+            int id = Integer.parseInt(m.group(1));
+            Optional<Task> task = dao.findById(id);
+
+            if (task.isPresent()) {
+                dao.deleteById(id);
+                sendResponse(exchange, 204, null);
+            } else {
+                sendResponse(exchange, 404, null);
+            }
+            return;
+        }
+        //endregion
+
+        //region Manage PUT /tasks/{id}
+        if ("PUT".equals(method) && m.matches()) {
+            int id = Integer.parseInt(m.group(1));
+            Optional<Task> task = dao.findById(id);
+            String body = new String(exchange.getRequestBody().readAllBytes(), UTF_8);
+            Task newTask = JsonUtils.deserialize(body, Task.class);
+
+            if (task.isPresent()) {
+                dao.changeById(id, newTask);
+                sendResponse(exchange, 204, null);
+            } else {
+                sendResponse(exchange, 404, null);
             }
             return;
         }
