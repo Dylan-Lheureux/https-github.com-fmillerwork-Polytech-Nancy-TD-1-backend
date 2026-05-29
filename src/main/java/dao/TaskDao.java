@@ -1,5 +1,6 @@
-package com.example.todoapp;
+package dao;
 
+import com.example.todoapp.Task;
 import java.util.*;
 
 /**
