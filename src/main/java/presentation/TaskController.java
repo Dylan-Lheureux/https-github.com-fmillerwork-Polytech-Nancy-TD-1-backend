@@ -144,7 +144,7 @@ public class TaskController {
 
             if (!tasks.isEmpty()) {
                 int numberOfTasks = service.count();
-                sendResponse(exchange, 200, JsonUtils.serialize(numberOfTasks   ));
+                sendResponse(exchange, 200, JsonUtils.serialize(numberOfTasks));
             } else {
                 sendResponse(exchange, 204, null);
             }

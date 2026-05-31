@@ -13,17 +13,55 @@ tags:
         description: Opérations sur les tâches
 
 paths:
+
+    # ===========================================================================
+    # /tasks
+    # ===========================================================================
     /tasks:
+        get:
+            tags: [ tasks ]
+            summary: Récupérer toutes les tâches
+            description: Retourne la liste complète des tâches enregistrées.
+            operationId: getAllTasks
+            responses:
+                '200':
+                    description: Liste des tâches retournée avec succès
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/TaskResponse'
+                            example:
+                                -   id: 1
+                                    title: Réviser DS de maths
+                                    description: Séries numériques et probabilités.
+                                    done: false
+                                -   id: 2
+                                    title: Valider mon PIVE
+                                    description: PIVE Club Poker.
+                                    done: true
+                '204':
+                    description: Aucune tâche enregistrée
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
         post:
             tags: [ tasks ]
             summary: Créer une tâche
+            description: >
+                Crée une nouvelle tâche. L'identifiant est auto-généré par la base de données.
+                Le champ `done` est initialisé à `false`.
             operationId: createTask
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/Task'
+                            $ref: '#/components/schemas/CreateTaskRequest'
+                        example:
+                            title: Acheter du lait
+                            description: 2L demi-écrémé
             responses:
                 '201':
                     description: Tâche créée avec succès
@@ -32,27 +70,59 @@ paths:
                             description: URL de la ressource créée
                             schema:
                                 type: string
-                                example: /tasks/1
+                                example: /tasks/4
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Task'
+                                $ref: '#/components/schemas/TaskResponse'
+                            example:
+                                id: 4
+                                title: Acheter du lait
+                                description: 2L demi-écrémé
+                                done: false
+                '400':
+                    $ref: '#/components/responses/ValidationError'
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
+        delete:
+            tags: [ tasks ]
+            summary: Supprimer toutes les tâches
+            description: Supprime l'ensemble des tâches enregistrées.
+            operationId: deleteAllTasks
+            responses:
+                '204':
+                    description: Toutes les tâches ont été supprimées avec succès
+                '404':
+                    description: Aucune tâche à supprimer
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
+    # ===========================================================================
+    # /tasks/count
+    # ===========================================================================
+    /tasks/count:
         get:
             tags: [ tasks ]
-            summary: Récupère l'ensemble des tâches
-            description: Récupère l'ensemble des tâches
-            operationId : getAllTask
-
+            summary: Compter les tâches
+            description: Retourne le nombre total de tâches enregistrées.
+            operationId: countTasks
             responses:
                 '200':
-                    description: Ok
+                    description: Nombre de tâches retourné avec succès
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Task'
+                                type: integer
+                                example: 3
                 '204':
-                    description: No Content
+                    description: Aucune tâche enregistrée
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
 
+    # ===========================================================================
+    # /tasks/{id}
+    # ===========================================================================
     /tasks/{id}:
         parameters:
             -   in: path
@@ -62,10 +132,12 @@ paths:
                 schema:
                     type: integer
                     minimum: 1
+                    example: 1
+
         get:
             tags: [ tasks ]
             summary: Récupérer une tâche
-            description: Récupérer une tâche par son identifiant
+            description: Retourne une tâche par son identifiant.
             operationId: getTaskById
             responses:
                 '200':
@@ -73,30 +145,193 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Task'
+                                $ref: '#/components/schemas/TaskResponse'
+                            example:
+                                id: 1
+                                title: Réviser DS de maths
+                                description: Séries numériques et probabilités.
+                                done: false
                 '404':
                     description: Tâche non trouvée
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
+        put:
+            tags: [ tasks ]
+            summary: Modifier une tâche
+            description: Remplace intégralement une tâche existante par les valeurs fournies.
+            operationId: updateTaskById
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateTaskRequest'
+                        example:
+                            title: Réviser DS de maths
+                            description: Intégrales et équations différentielles.
+                            done: true
+            responses:
+                '204':
+                    description: Tâche mise à jour avec succès
+                '400':
+                    $ref: '#/components/responses/ValidationError'
+                '404':
+                    description: Tâche non trouvée
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
+        delete:
+            tags: [ tasks ]
+            summary: Supprimer une tâche
+            description: Supprime la tâche correspondant à l'identifiant fourni.
+            operationId: deleteTaskById
+            responses:
+                '204':
+                    description: Tâche supprimée avec succès
+                '404':
+                    description: Tâche non trouvée
+                '500':
+                    $ref: '#/components/responses/InternalServerError'
+
+# =============================================================================
+# Composants réutilisables
+# =============================================================================
 components:
+
     schemas:
-        Task:
+
+        # -----------------------------------------------------------------------
+        # Schemas de réponse
+        # -----------------------------------------------------------------------
+        TaskResponse:
             type: object
-            description: Représentation d'une tâche
+            description: Représentation complète d'une tâche retournée par l'API
             properties:
                 id:
                     type: integer
+                    description: Identifiant unique auto-généré par la base de données
                     example: 1
                 title:
                     type: string
-                    nullable: false
+                    description: Titre de la tâche (50 caractères max)
+                    maxLength: 50
                     example: Acheter du lait
                 description:
                     type: string
+                    description: Description détaillée de la tâche (255 caractères max)
+                    maxLength: 255
                     nullable: true
                     example: 2L demi-écrémé
                 done:
                     type: boolean
-                    nullable: false
+                    description: Statut d'accomplissement de la tâche
                     example: false
             required:
                 - id
                 - title
+                - done
+
+        # -----------------------------------------------------------------------
+        # Schemas de requête
+        # -----------------------------------------------------------------------
+        CreateTaskRequest:
+            type: object
+            description: >
+                Corps de la requête pour créer une tâche.
+                L'id est auto-généré ; `done` est initialisé à `false`.
+            properties:
+                title:
+                    type: string
+                    description: Titre de la tâche (obligatoire, 50 caractères max)
+                    maxLength: 50
+                    example: Acheter du lait
+                description:
+                    type: string
+                    description: Description de la tâche (obligatoire, 255 caractères max)
+                    maxLength: 255
+                    example: 2L demi-écrémé
+            required:
+                - title
+                - description
+
+        UpdateTaskRequest:
+            type: object
+            description: Corps de la requête pour modifier intégralement une tâche.
+            properties:
+                title:
+                    type: string
+                    description: Nouveau titre (obligatoire, 50 caractères max)
+                    maxLength: 50
+                    example: Acheter du lait bio
+                description:
+                    type: string
+                    description: Nouvelle description (obligatoire, 255 caractères max)
+                    maxLength: 255
+                    example: 1L entier en magasin bio
+                done:
+                    type: boolean
+                    description: Nouveau statut d'accomplissement (obligatoire)
+                    example: true
+            required:
+                - title
+                - description
+                - done
+
+        # -----------------------------------------------------------------------
+        # Schemas d'erreur
+        # -----------------------------------------------------------------------
+        ValidationErrorResponse:
+            type: object
+            description: Erreur de validation retournée pour un champ invalide
+            properties:
+                field:
+                    type: string
+                    description: Nom du champ en erreur
+                    example: title
+                message:
+                    type: string
+                    description: Description lisible de l'erreur
+                    example: "Le champ 'title' ne doit pas dépasser 50 caractères (reçu : 63)."
+            required:
+                - field
+                - message
+
+        ErrorResponse:
+            type: object
+            description: Erreur interne retournée en cas d'exception inattendue
+            properties:
+                message:
+                    type: string
+                    description: Description générique de l'erreur
+                    example: Une erreur interne est survenue. Veuillez réessayer ultérieurement.
+            required:
+                - message
+
+    # ---------------------------------------------------------------------------
+    # Réponses réutilisables
+    # ---------------------------------------------------------------------------
+    responses:
+
+        ValidationError:
+            description: Paramètre(s) de la requête invalide(s)
+            content:
+                application/json:
+                    schema:
+                        type: array
+                        items:
+                            $ref: '#/components/schemas/ValidationErrorResponse'
+                    example:
+                        -   field: title
+                            message: "Le champ 'title' est obligatoire et ne peut pas être vide."
+                        -   field: description
+                            message: "Le champ 'description' ne doit pas dépasser 255 caractères (reçu : 300)."
+
+        InternalServerError:
+            description: Erreur interne inattendue
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorResponse'
+                    example:
+                        message: Une erreur interne est survenue. Veuillez réessayer ultérieurement.
