@@ -177,9 +177,7 @@ public class TaskDao {
     /** Compte le nombre de lignes présentes dans la table. */
     private int count() {
         String sql = "SELECT COUNT(*) FROM task";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             return rs.next() ? rs.getInt(1) : 0;
         } catch (SQLException e) {
             return 0;

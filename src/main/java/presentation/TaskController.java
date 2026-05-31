@@ -2,11 +2,14 @@ package presentation;
 
 import com.example.todoapp.JsonUtils;
 import dto.CreateTaskRequest;
+import dto.ErrorResponse;
 import dto.TaskResponse;
 import dto.UpdateTaskRequest;
 import dto.ValidationErrorResponse;
 import service.TaskService;
 import com.sun.net.httpserver.HttpExchange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -20,7 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.nonNull;
 
 public class TaskController {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(TaskController.class);
+
     private static final Pattern ID_PATH = Pattern.compile("^/tasks/([0-9]+)$");
     private static final TaskService service = new TaskService();
 
@@ -28,8 +33,31 @@ public class TaskController {
     private static final int MAX_DESCRIPTION_LENGTH = 255;
 
     public static void handleTasks(HttpExchange exchange) throws IOException {
+        try {
+            route(exchange);
+        } catch (Exception e) {
+            log.error("Erreur inattendue lors du traitement de {} {}", 
+                exchange.getRequestMethod(), 
+                exchange.getRequestURI().getPath(), 
+                e);
+            try {
+                ErrorResponse error = new ErrorResponse("Une erreur interne est survenue. Veuillez réessayer ultérieurement.");
+                sendResponse(exchange, 500, JsonUtils.serialize(error));
+            } catch (Exception ignored) {
+                // En dernier recours : on ferme proprement la connexion sans corps
+                exchange.sendResponseHeaders(500, 0);
+                exchange.close();
+            }
+        }
+    }
+
+    /**
+     * Contient toute la logique de routage et de traitement des requêtes.
+     * Les exceptions remontent librement vers {@link #handleTasks} qui les attrape.
+     */
+    private static void route(HttpExchange exchange) throws Exception {
         String method = exchange.getRequestMethod();
-        String path = exchange.getRequestURI().getPath();
+        String path   = exchange.getRequestURI().getPath();
 
         //region Manage POST /tasks
         if ("POST".equals(method) && "/tasks".equals(path)) {
@@ -65,7 +93,7 @@ public class TaskController {
         }
         //endregion
 
-        //region Manage GET /tasks 
+        //region Manage GET /tasks
         if ("GET".equals(method) && "/tasks".equals(path)) {
             ArrayList<TaskResponse> tasks = service.findAll();
 
@@ -77,6 +105,9 @@ public class TaskController {
             return;
         }
         //endregion
+
+        // Recompute matcher for id-based routes below (consumed by GET branch)
+        m = ID_PATH.matcher(path);
 
         //region Manage DELETE /tasks/{id}
         if ("DELETE".equals(method) && m.matches()) {
@@ -122,6 +153,10 @@ public class TaskController {
         sendResponse(exchange, 404, null);
     }
 
+    // -------------------------------------------------------------------------
+    // Validation
+    // -------------------------------------------------------------------------
+
     /**
      * Valide le DTO de création d'une tâche.
      * Règles :
@@ -146,7 +181,6 @@ public class TaskController {
 
         return errors;
     }
-
 
     /**
      * Valide le DTO de modification d'une tâche.
@@ -202,6 +236,10 @@ public class TaskController {
         return errors;
     }
 
+    // -------------------------------------------------------------------------
+    // Réponse HTTP
+    // -------------------------------------------------------------------------
+
     private static void sendResponse(HttpExchange exchange, int status, String json) throws IOException {
         if (nonNull(json)) {
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
@@ -215,5 +253,4 @@ public class TaskController {
             exchange.close();
         }
     }
-
 }
