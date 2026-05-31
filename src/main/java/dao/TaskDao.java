@@ -46,29 +46,41 @@ public class TaskDao {
      */
     private void seedData() {
         if (count() > 0) return;
-        save(new Task(1, "Réviser DS de maths",      "Séries numériques et probabilités.", false));
-        save(new Task(2, "Valider mon PIVE",          "PIVE Club Poker.",                  true));
-        save(new Task(3, "Choisir mon parcours de 4A","SIR ou SIA ?",                      false));
+        create("Réviser DS de maths",       "Séries numériques et probabilités.");
+        create("Valider mon PIVE",           "PIVE Club Poker.");
+        create("Choisir mon parcours de 4A", "SIR ou SIA ?");
+        // Marque la 2e tâche comme terminée
+        String sql = "UPDATE task SET done = 1 WHERE title = 'Valider mon PIVE'";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            log.warn("Impossible de marquer la tâche de démo comme terminée.", e);
+        }
         log.info("Données de démo insérées.");
     }
 
     /**
-     * Insère ou remplace une Task (INSERT OR REPLACE).
+     * Insère une nouvelle tâche et laisse SQLite générer l'id.
      *
-     * @param task tâche à persister.
-     * @return la tâche telle qu'elle est stockée.
+     * @param title       titre de la nouvelle tâche.
+     * @param description description de la nouvelle tâche.
+     * @return la tâche créée avec son id auto-généré.
      */
-    public Task save(Task task) {
-        String sql = "INSERT OR REPLACE INTO task (id, title, description, done) VALUES (?, ?, ?, ?)";
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt    (1, task.id());
-            ps.setString (2, task.title());
-            ps.setString (3, task.description());
-            ps.setInt    (4, task.done() ? 1 : 0);
+    public Task create(String title, String description) {
+        String sql = "INSERT INTO task (title, description, done) VALUES (?, ?, 0)";
+        try (Connection conn = getConnection() ; PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, title);
+            ps.setString(2, description);
             ps.executeUpdate();
-            return task;
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    int generatedId = keys.getInt(1);
+                    return new Task(generatedId, title, description, false);
+                }
+            }
+            throw new RuntimeException("Aucun id généré après l'insertion de la tâche.");
         } catch (SQLException e) {
-            throw new RuntimeException("Erreur lors de la sauvegarde de la tâche id=" + task.id(), e);
+            throw new RuntimeException("Erreur lors de la création de la tâche.", e);
         }
     }
 
@@ -127,18 +139,20 @@ public class TaskDao {
     }
 
     /**
-     * Remplace une Task existante par une nouvelle version.
+     * Met à jour le titre, la description et le statut d'une {@link Task} existante.
      *
-     * @param id      identifiant de la tâche à modifier.
-     * @param newTask nouvelles valeurs.
+     * @param id          identifiant de la tâche à modifier.
+     * @param title       nouveau titre.
+     * @param description nouvelle description.
+     * @param done        nouveau statut.
      */
-    public void changeById(int id, Task newTask) {
+    public void updateById(int id, String title, String description, boolean done) {
         String sql = "UPDATE task SET title = ?, description = ?, done = ? WHERE id = ?";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString (1, newTask.title());
-            ps.setString (2, newTask.description());
-            ps.setInt    (3, newTask.done() ? 1 : 0);
-            ps.setInt    (4, id);
+            ps.setString(1, title);
+            ps.setString(2, description);
+            ps.setInt   (3, done ? 1 : 0);
+            ps.setInt   (4, id);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Erreur lors de la modification de la tâche id=" + id, e);
