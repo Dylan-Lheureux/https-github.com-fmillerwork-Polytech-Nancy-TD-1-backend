@@ -139,6 +139,18 @@ public class TaskDao {
     }
 
     /**
+     * Supprime Toutes les Task.
+     */
+    public void deleteAll() {
+        String sql = "DELETE FROM task";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la suppression des tâches", e);
+        }
+    }
+
+    /**
      * Met à jour le titre, la description et le statut d'une {@link Task} existante.
      *
      * @param id          identifiant de la tâche à modifier.
@@ -159,6 +171,16 @@ public class TaskDao {
         }
     }
 
+    /** Compte le nombre de lignes présentes dans la table. */
+    public int count() {
+        String sql = "SELECT COUNT(*) FROM task";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
     /** Ouvre une connexion JDBC vers la base SQLite. */
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL);
@@ -172,15 +194,5 @@ public class TaskDao {
                 rs.getString ("description"),
                 rs.getInt    ("done") == 1
         );
-    }
-
-    /** Compte le nombre de lignes présentes dans la table. */
-    private int count() {
-        String sql = "SELECT COUNT(*) FROM task";
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-            return rs.next() ? rs.getInt(1) : 0;
-        } catch (SQLException e) {
-            return 0;
-        }
     }
 }

@@ -58,6 +58,22 @@ public class TaskService {
     }
 
     /**
+     * Supprime toutes les tâches.
+     */
+    public void deleteAll() {
+        dao.deleteAll();
+    }
+
+    /**
+     * Retourne le nombre de tâches.
+     *
+     * @return nombre de tâches
+     */
+    public int count() {
+        return dao.count();
+    }
+
+    /**
      * Met à jour une tâche à partir du DTO de modification.
      *
      * @param id      identifiant de la tâche à modifier.

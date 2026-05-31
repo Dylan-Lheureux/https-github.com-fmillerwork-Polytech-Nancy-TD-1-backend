@@ -124,6 +124,34 @@ public class TaskController {
         }
         //endregion
 
+        //region Manage DELETE /tasks
+        if ("DELETE".equals(method) && "/tasks".equals(path)) {
+            ArrayList<TaskResponse> tasks = service.findAll();
+
+            if (!tasks.isEmpty()) {
+                service.deleteAll();
+                sendResponse(exchange, 204, null);
+            } else {
+                sendResponse(exchange, 404, null);
+            }
+            return;
+        }
+        //endregion
+
+        //region Manage GET /tasks/count
+        if ("GET".equals(method) && "/tasks/count".equals(path)) {
+            ArrayList<TaskResponse> tasks = service.findAll();
+
+            if (!tasks.isEmpty()) {
+                int numberOfTasks = service.count();
+                sendResponse(exchange, 200, JsonUtils.serialize(numberOfTasks   ));
+            } else {
+                sendResponse(exchange, 204, null);
+            }
+            return;
+        }
+        //endregion
+
         //region Manage PUT /tasks/{id}
         if ("PUT".equals(method) && m.matches()) {
             int id = Integer.parseInt(m.group(1));
